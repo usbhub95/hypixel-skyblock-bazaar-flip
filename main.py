@@ -11,8 +11,9 @@ import csv
 from os import startfile
 from operator import itemgetter
 
-# get user's money
-cash = int(input("money to spend?"))/7
+# get user's config
+productsAmount = int(input("products to buy?"))
+cash = (int(input("money to spend?"))*0.99)/productsAmount
 
 # get data from api
 bazaarJson = get("https://api.hypixel.net/skyblock/bazaar").json()
@@ -22,7 +23,7 @@ itemsJson = get("https://api.hypixel.net/resources/skyblock/items").json()
 bazaar = bazaarJson["products"]
 items = itemsJson["items"]
 bazaarProcessed = []
-fieldNames = ["Name", "Sell Price", "Hourly Instasells", "NPC Price", "NPC Margin", "Profit Ratio", "Score", "Amount to Buy"]
+fieldNames = ["Name", "Sell Price", "Hourly Instasells", "NPC Price", "NPC Margin", "Profit Ratio", "Score", "Amount to Buy", "Estimated Seconds"]
 
 # grab wanted items and data
 for i in items:
@@ -32,10 +33,9 @@ for i in items:
         except IndexError:
             npcMargin = 0
             
-        if (npcMargin > 0) and (bazaar[i["id"]]["quick_status"]["sellMovingWeek"]/168 >= 33600) and (bazaar["ENDER_PEARL"]["sell_summary"][0]["pricePerUnit"] < bazaar[i["id"]]["sell_summary"][0]["pricePerUnit"]):
+        if (npcMargin > 0) and (bazaar[i["id"]]["quick_status"]["sellMovingWeek"]/168 >= 33600) and (bazaar[i["id"]]["sell_summary"][0]["pricePerUnit"] >= 25):
             index = len(bazaarProcessed)
             bazaarProcessed.insert(index, {"Name":i["name"]})
-            
             try:
                 bazaarProcessed[index]["Sell Price"] = bazaar[i["id"]]["sell_summary"][0]["pricePerUnit"]
             except IndexError:
@@ -47,16 +47,11 @@ for i in items:
             bazaarProcessed[index]["Profit Ratio"] = npcMargin/bazaarProcessed[index]["NPC Price"]
             bazaarProcessed[index]["Score"] = bazaarProcessed[index]["Profit Ratio"]*npcMargin
             bazaarProcessed[index]["Amount to Buy"] = cash//bazaarProcessed[index]["Sell Price"]
+            bazaarProcessed[index]["Estimated Seconds"] = bazaarProcessed[index]["Amount to Buy"]/bazaarProcessed[index]["Hourly Instasells"]*3600
 
 bazaarProcessed.sort(key=itemgetter("Score"), reverse=True)
 
 # save the data!
-with open("bazaarData.json", "w") as file:
-    dump(bazaarJson, file)
-
-with open("itemsData.json", "w") as file:
-    dump(itemsJson, file)
-
 with open("bazaarProcessed.csv", "w", newline="") as file:
     writer = csv.DictWriter(file, fieldnames = fieldNames)
     writer.writeheader()
