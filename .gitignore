@@ -152,6 +152,4 @@ cython_debug/
 #.idea/
 
 # custom
-bazaarData.json
 bazaarProcessed.csv
-itemsData.json
